@@ -1,108 +1,69 @@
 // index.js
 const { BlobServiceClient } = require("@azure/storage-blob");
 
-const createContainerButton = document.getElementById("create-container-button");
-const deleteContainerButton = document.getElementById("delete-container-button");
-const selectButton = document.getElementById("select-button");
-const fileInput = document.getElementById("file-input");
-const listButton = document.getElementById("list-button");
-const deleteButton = document.getElementById("delete-button");
+
+const listIssueButton = document.getElementById("list-issue-button");
+const listFilesButton = document.getElementById("list-file-button");
 const status = document.getElementById("status");
 const fileList = document.getElementById("file-list");
+const images = document.getElementById("images");
 
 const reportStatus = message => {
     status.innerHTML += `${message}<br/>`;
     status.scrollTop = status.scrollHeight;
 }
 
-const blobSasUrl = "https://yenicesmestorage.blob.core.windows.net/?sv=2019-12-12&ss=bfqt&srt=sco&sp=rwdlacupx&se=2020-12-30T19:11:38Z&st=2020-12-30T11:11:38Z&spr=https&sig=7XKxi4Ewvz7PMzt%2FH3ZLdZX%2FtN7FajohJVJYnsA4w6s%3D";
+const blobBaseUrl = "https://yenicesmestorage.blob.core.windows.net/";
+const blobSasUrl = blobBaseUrl + window.location.search;
 
 // Create a new BlobServiceClient
 const blobServiceClient = new BlobServiceClient(blobSasUrl);
 
-// Create a unique name for the container by 
-// appending the current time to the file name
-const containerName = "container" + new Date().getTime();
-
-// Get a container client from the BlobServiceClient
-const containerClient = blobServiceClient.getContainerClient(containerName);
-
-const createContainer = async () => {
-    try {
-        reportStatus(`Creating container "${containerName}"...`);
-        await containerClient.create();
-        reportStatus(`Done.`);
-    } catch (error) {
-        reportStatus(error.message);
-    }
-};
-
-const deleteContainer = async () => {
-    try {
-        reportStatus(`Deleting container "${containerName}"...`);
-        await containerClient.delete();
-        reportStatus(`Done.`);
-    } catch (error) {
-        reportStatus(error.message);
-    }
-};
-
-createContainerButton.addEventListener("click", createContainer);
-deleteContainerButton.addEventListener("click", deleteContainer);
-
-const listFiles = async () => {
+const listIssues = async () => {
     fileList.size = 0;
     fileList.innerHTML = "";
     try {
-        reportStatus("Retrieving file list...");
-        let iter = containerClient.listBlobsFlat();
-        let blobItem = await iter.next();
-        while (!blobItem.done) {
+        reportStatus("Retrieving issue list...");
+        let i = 1;
+        const iter = blobServiceClient.listContainers();
+        let containerItem = await iter.next();
+        while (!containerItem.done) {
             fileList.size += 1;
-            fileList.innerHTML += `<option>${blobItem.value.name}</option>`;
-            blobItem = await iter.next();
+            fileList.innerHTML += `<option>${containerItem.value.name}</option>`;
+            containerItem = await iter.next();
         }
         if (fileList.size > 0) {
             reportStatus("Done.");
         } else {
-            reportStatus("The container does not contain any files.");
+            reportStatus("The storage does not contain any issues.");
         }
     } catch (error) {
         reportStatus(error.message);
     }
 };
 
-listButton.addEventListener("click", listFiles);
-
-const uploadFiles = async () => {
-    try {
-        reportStatus("Uploading files...");
-        const promises = [];
-        for (const file of fileInput.files) {
-            const blockBlobClient = containerClient.getBlockBlobClient(file.name);
-            promises.push(blockBlobClient.uploadBrowserData(file));
-        }
-        await Promise.all(promises);
-        reportStatus("Done.");
-        listFiles();
-    }
-    catch (error) {
-            reportStatus(error.message);
-    }
-}
-
-selectButton.addEventListener("click", () => fileInput.click());
-fileInput.addEventListener("change", uploadFiles);
-
-const deleteFiles = async () => {
+const listFiles = async () => {
     try {
         if (fileList.selectedOptions.length > 0) {
-            reportStatus("Deleting files...");
-            for (const option of fileList.selectedOptions) {
-                await containerClient.deleteBlob(option.text);
+            const containerName = fileList.selectedOptions[0].text;
+            const containerClient = blobServiceClient.getContainerClient(containerName);
+
+            fileList.size = 0;
+            fileList.innerHTML = "";
+            reportStatus("Retrieving file list...");
+            let iter = containerClient.listBlobsFlat();
+            let blobItem = await iter.next();
+            while (!blobItem.done) {
+                fileList.size += 1;
+                fileList.innerHTML += `<option>${blobItem.value.name}</option>`;
+                images.innerHTML += `<img src="${blobBaseUrl + containerName + "/" + blobItem.value.name + window.location.search}" />`;
+                blobItem = await iter.next();
             }
-            reportStatus("Done.");
-            listFiles();
+            if (fileList.size > 0) {
+                reportStatus("Done.");
+            } else {
+                reportStatus("The container does not contain any files.");
+            }
         } else {
             reportStatus("No files selected.");
         }
@@ -111,4 +72,5 @@ const deleteFiles = async () => {
     }
 };
 
-deleteButton.addEventListener("click", deleteFiles);
+listIssueButton.addEventListener("click", listIssues);
+listFilesButton.addEventListener("click", listFiles);
