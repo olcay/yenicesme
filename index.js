@@ -1,42 +1,43 @@
 // index.js
 const { BlobServiceClient } = require("@azure/storage-blob");
 
-
-const listIssueButton = document.getElementById("list-issue-button");
-const listFilesButton = document.getElementById("list-file-button");
-const status = document.getElementById("status");
-const fileList = document.getElementById("file-list");
-const images = document.getElementById("images");
+const issues = document.getElementById("issues");
 
 const reportStatus = message => {
-    status.innerHTML += `${message}<br/>`;
-    status.scrollTop = status.scrollHeight;
+    console.log(message);
 }
 
 const blobBaseUrl = "https://yenicesmestorage.blob.core.windows.net/";
-const blobSasUrl = blobBaseUrl + window.location.search;
+const blobSasToken =  "?sv=2019-12-12&ss=b&srt=sco&sp=rl&se=2021-12-31T18:43:25Z&st=2020-12-31T10:43:25Z&spr=https&sig=xyJVtsCBUzPef2MDVOp9hkzuoLCYjA0VMZqL1Gtngbs%3D";
 
 // Create a new BlobServiceClient
-const blobServiceClient = new BlobServiceClient(blobSasUrl);
+const blobServiceClient = new BlobServiceClient(blobBaseUrl + blobSasToken);
+
+const articleTemplate = async (issue, pic) => {
+    return `<article>
+    <a href="read.html?sayi=${issue}" class="image"><img src="${blobBaseUrl + issue + "/" + pic + blobSasToken}" alt="" /></a>
+    <h3>Sayı: ${issue}</h3>
+    <ul class="actions">
+        <li><a href="read.html?sayi=${issue}" class="button">Oku</a></li>
+    </ul>
+</article>`;
+};
 
 const listIssues = async () => {
-    fileList.size = 0;
-    fileList.innerHTML = "";
     try {
         reportStatus("Retrieving issue list...");
-        let i = 1;
         const iter = blobServiceClient.listContainers();
         let containerItem = await iter.next();
         while (!containerItem.done) {
-            fileList.size += 1;
-            fileList.innerHTML += `<option>${containerItem.value.name}</option>`;
+            var containerName = containerItem.value.name;
+            var containerClient = blobServiceClient.getContainerClient(containerName);
+            let blobIter = containerClient.listBlobsFlat();
+            let blobItem = await blobIter.next();
+
+            issues.innerHTML += await articleTemplate(containerName, blobItem.value.name);
             containerItem = await iter.next();
         }
-        if (fileList.size > 0) {
-            reportStatus("Done.");
-        } else {
-            reportStatus("The storage does not contain any issues.");
-        }
+        reportStatus("Done.");
     } catch (error) {
         reportStatus(error.message);
     }
@@ -56,7 +57,7 @@ const listFiles = async () => {
             while (!blobItem.done) {
                 fileList.size += 1;
                 fileList.innerHTML += `<option>${blobItem.value.name}</option>`;
-                images.innerHTML += `<img src="${blobBaseUrl + containerName + "/" + blobItem.value.name + window.location.search}" />`;
+                images.innerHTML += `<img src="${blobBaseUrl + containerName + "/" + blobItem.value.name + blobSasToken}" />`;
                 blobItem = await iter.next();
             }
             if (fileList.size > 0) {
@@ -72,5 +73,6 @@ const listFiles = async () => {
     }
 };
 
-listIssueButton.addEventListener("click", listIssues);
-listFilesButton.addEventListener("click", listFiles);
+document.addEventListener("DOMContentLoaded", function(event) { 
+    listIssues();
+  });

@@ -22,7 +22,7 @@ var containerName, containerClient;
 
 const createContainer = async () => {
     try {
-        containerName = "container" + new Date().getTime() + "-" + issueNo.value;
+        containerName = issueNo.value;
         containerClient = blobServiceClient.getContainerClient(containerName);
         reportStatus(`Creating folder "${containerName}"...`);
         await containerClient.create();
