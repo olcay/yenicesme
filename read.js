@@ -4,7 +4,8 @@ const { BlobServiceClient } = require("@azure/storage-blob");
 const txtIssue = document.getElementById("issue");
 const issues = document.getElementById("issues");
 const issue = getParameterByName("sayi");
-const pageFromQuery = getParameterByName("sayfa") ?? "1";
+let pageFromQuery = getParameterByName("sayfa");
+if (pageFromQuery === null) pageFromQuery = "1";
 const page = parseInt(pageFromQuery) < 1 ? 1 : parseInt(pageFromQuery);
 
 const reportStatus = message => {
@@ -41,7 +42,7 @@ const listFiles = async () => {
         reportStatus("Retrieving file list...");
         let iter = containerClient.listBlobsFlat();
         if (page > 1) {
-            for (let i = 0; i < page * 2; i++) {
+            for (let i = 0; i < ((page - 1) * 2) ; i++) {
                 await iter.next();
             }
         }
@@ -51,7 +52,8 @@ const listFiles = async () => {
         if (blobItem === undefined) {
             issues.innerHTML += `<article>
             <a href="/index.html">Bitti! Ana sayfaya geri dön.</a>
-        </article>`
+        </article>`;
+        return;
         }
         issues.innerHTML += await articleTemplate(containerName, page - 1, blobItem.name);
         response = await iter.next();
