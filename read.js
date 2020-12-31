@@ -18,9 +18,12 @@ const blobSasToken = "?sv=2019-12-12&ss=b&srt=sco&sp=rl&se=2021-12-31T18:43:25Z&
 // Create a new BlobServiceClient
 const blobServiceClient = new BlobServiceClient(blobBaseUrl + blobSasToken);
 
-const articleTemplate = async (issue, next, pic) => {
+const articleTemplate = async (issue, button, next, pic) => {
     return `<article>
-    <a href="?sayi=${issue}&sayfa=${next}" class="image"><img src="${blobBaseUrl + issue + "/" + pic + blobSasToken}" alt="" /></a>
+    <a href="?sayi=${issue}&sayfa=${next}" class="image" title="${button}"><img src="${blobBaseUrl + issue + "/" + pic + blobSasToken}" alt="" /></a>
+    <ul class="actions">
+        <li><a href="?sayi=${issue}&sayfa=${next}" class="button">${button}</a></li>
+    </ul>
 </article>`;
 };
 
@@ -55,10 +58,10 @@ const listFiles = async () => {
         </article>`;
         return;
         }
-        issues.innerHTML += await articleTemplate(containerName, page - 1, blobItem.name);
+        issues.innerHTML += await articleTemplate(containerName, "< GERİ", page - 1, blobItem.name);
         response = await iter.next();
         blobItem = response.value;
-        issues.innerHTML += await articleTemplate(containerName, page + 1, blobItem.name);
+        issues.innerHTML += await articleTemplate(containerName, "İLERİ >", page + 1, blobItem.name);
         reportStatus("Done.");
     } catch (error) {
         reportStatus(error.message);
