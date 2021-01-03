@@ -16,11 +16,13 @@ const blobSasUrl = "https://yenicesmestorage.blob.core.windows.net/" + window.lo
 // Create a new BlobServiceClient
 const blobServiceClient = new BlobServiceClient(blobSasUrl);
 
-// Create a unique name for the container by 
-// appending the current time to the file name
-var containerName, containerClient;
+const uploadFiles = async () => {
+    if (!issueNo.value) {
+        reportStatus("Bir sayı numarası giriniz.");
+        return;
+    }
 
-const createContainer = async () => {
+    var containerName, containerClient;
     try {
         containerName = issueNo.value;
         containerClient = blobServiceClient.getContainerClient(containerName);
@@ -29,11 +31,9 @@ const createContainer = async () => {
         reportStatus("Folder is created.");
     } catch (error) {
         reportStatus(error.message);
+        return;
     }
-};
 
-const uploadFiles = async () => {
-    await createContainer();
     try {
         reportStatus("Uploading files...");
         const promises = [];
@@ -45,7 +45,7 @@ const uploadFiles = async () => {
         reportStatus("Files are uploaded.");
     }
     catch (error) {
-            reportStatus(error.message);
+        reportStatus(error.message);
     }
 }
 

@@ -2,13 +2,37 @@
 <!DOCTYPE html>
 <html>
 
-<body>
-    <p><b>Issue:</b></p>
-    <p><input id="issue-no" type="text" /></p>
-    <button id="select-button">Select and upload files</button>
-    <input type="file" id="file-input" multiple style="display: none;" />
-    <p><b>Status:</b></p>
-    <p id="status" style="height:160px; width: 593px; overflow: scroll;"></p>
+<head>
+    <title>YENİ ÇEŞME - Haftalık Bağımsız Siyasi Gazete</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+    <link rel="stylesheet" href="./assets/css/main.css" />
+</head>
+
+<body class="is-preload">
+
+    <!-- Wrapper -->
+    <div id="wrapper">
+
+        <!-- Main -->
+        <div id="main">
+            <div class="inner">
+
+                <section>
+                    <header class="major">
+                        <h2>Yeni Sayı</h2>
+                    </header>
+                    <p><input id="issue-no" type="text" placeholder="Sayı numarası"/></p>
+                    <button id="select-button" class="button primary large icon solid fa-upload">Select and upload
+                        files</button>
+                    <input type="file" id="file-input" multiple style="display: none;" />
+                </section>
+
+                <p id="status" style="height:160px; width: 593px; overflow: scroll;"></p>
+            </div>
+        </div>
+
+    </div>
 </body>
 
 <script src="./upload.js"></script>
