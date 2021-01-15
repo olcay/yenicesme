@@ -1,12 +1,17 @@
 // index.js
 const { BlobServiceClient } = require("@azure/storage-blob");
 
-const txtIssue = document.getElementById("issue");
+const issueNo = document.getElementById("issue");
 const issues = document.getElementById("issues");
+const txtIssue = document.getElementById("txtIssue");
 const issue = getParameterByName("sayi");
 let pageFromQuery = getParameterByName("sayfa");
 if (pageFromQuery === null) pageFromQuery = "1";
 const page = parseInt(pageFromQuery) < 1 ? 1 : parseInt(pageFromQuery);
+
+let nextText = "NEXT >";
+let prevText = "< PREVIOUS";
+let finishText = `Done! <a href="/read.html?sayi=${parseInt(issue)-1}">Continue to read the previous issue</a> or <a href="/index.html">go back to the main page</a>.`;
 
 const reportStatus = message => {
     console.log(message);
@@ -36,16 +41,26 @@ function getParameterByName(name, url = window.location.href) {
     return decodeURIComponent(results[2].replace(/\+/g, ' '));
 }
 
+const checkDisplayLanguage = async () => {
+    var language = window.navigator.userLanguage || window.navigator.language;
+    if (language === "tr") {
+        txtIssue.innerHTML = "Sayı";
+        nextText = "İLERİ >";
+        prevText = "< GERİ";
+        finishText = `Bitti! <a href="/read.html?sayi=${parseInt(issue)-1}">Önceki sayıya devam et</a> veya <a href="/index.html">anasayfaya geri dön</a>.`;
+    }
+};
+
 const listFiles = async () => {
     try {
-        txtIssue.innerHTML = issue;
+        issueNo.innerHTML = issue;
         const containerName = issue;
         const containerClient = blobServiceClient.getContainerClient(containerName);
 
         reportStatus("Retrieving file list...");
         let iter = containerClient.listBlobsFlat();
         if (page > 1) {
-            for (let i = 0; i < ((page - 1) * 2) ; i++) {
+            for (let i = 0; i < ((page - 1) * 2); i++) {
                 await iter.next();
             }
         }
@@ -53,15 +68,13 @@ const listFiles = async () => {
         let response = await iter.next();
         let blobItem = response.value;
         if (blobItem === undefined) {
-            issues.innerHTML += `<article>
-            <a href="/index.html">Bitti! Ana sayfaya geri dön.</a>
-        </article>`;
-        return;
+            issues.innerHTML += "<article>" + finishText + "</article>";
+            return;
         }
-        issues.innerHTML += await articleTemplate(containerName, "< GERİ", page - 1, blobItem.name);
+        issues.innerHTML += await articleTemplate(containerName, prevText, page - 1, blobItem.name);
         response = await iter.next();
         blobItem = response.value;
-        issues.innerHTML += await articleTemplate(containerName, "İLERİ >", page + 1, blobItem.name);
+        issues.innerHTML += await articleTemplate(containerName, nextText, page + 1, blobItem.name);
         reportStatus("Done.");
     } catch (error) {
         reportStatus(error.message);
@@ -69,5 +82,6 @@ const listFiles = async () => {
 };
 
 document.addEventListener("DOMContentLoaded", function (event) {
+    checkDisplayLanguage();
     listFiles();
 });
