@@ -29,12 +29,13 @@ const listIssues = async () => {
         let containerItem = await iter.next();
         while (!containerItem.done) {
             var containerName = containerItem.value.name;
-            if (!containerName.startsWith("8")) continue;
-            var containerClient = blobServiceClient.getContainerClient(containerName);
-            let blobIter = containerClient.listBlobsFlat();
-            let blobItem = await blobIter.next();
+            if (containerName.startsWith("8")) {
+                var containerClient = blobServiceClient.getContainerClient(containerName);
+                let blobIter = containerClient.listBlobsFlat();
+                let blobItem = await blobIter.next();
 
-            issues.innerHTML = await articleTemplate(containerName, blobItem.value.name) + issues.innerHTML;
+                issues.innerHTML = await articleTemplate(containerName, blobItem.value.name) + issues.innerHTML;
+            }
             containerItem = await iter.next();
         }
         reportStatus("Done.");
