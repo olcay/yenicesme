@@ -1,17 +1,19 @@
-// read.js
+// readv2.js
 const { BlobServiceClient } = require("@azure/storage-blob");
 
 const issueNo = document.getElementById("issue");
 const issues = document.getElementById("issues");
 const txtIssue = document.getElementById("txtIssue");
+const focus = document.getElementById("focus");
+const imgFocus = document.getElementById("imgFocus");
+const actions = document.getElementById("actions");
+
 const issue = getParameterByName("sayi");
-let pageFromQuery = getParameterByName("sayfa");
-if (pageFromQuery === null) pageFromQuery = "1";
-const page = parseInt(pageFromQuery) < 1 ? 1 : parseInt(pageFromQuery);
+let pageName = "";
 
 let nextText = "NEXT >";
 let prevText = "< PREVIOUS";
-let finishText = `Done! <a href="/read.html?sayi=${parseInt(issue)-1}">Continue to read the previous issue</a> or <a href="/index.html">go back to the main page</a>.`;
+let finishText = `Done! <a href="/read.html?sayi=${parseInt(issue) - 1}">Continue to read the previous issue</a> or <a href="/index.html">go back to the main page</a>.`;
 
 const reportStatus = message => {
     console.log(message);
@@ -23,13 +25,12 @@ const blobSasToken = "?sv=2019-12-12&ss=b&srt=sco&sp=rl&se=2021-12-31T18:43:25Z&
 // Create a new BlobServiceClient
 const blobServiceClient = new BlobServiceClient(blobBaseUrl + blobSasToken);
 
-const articleTemplate = async (issue, button, next, pic) => {
-    return `<article>
-    <a href="?sayi=${issue}&sayfa=${next}" class="image" title="${button}"><img src="${blobBaseUrl + "issues/" + pic + blobSasToken}" alt="" /></a>
-    <ul class="actions">
-        <li><a href="?sayi=${issue}&sayfa=${next}" class="button">${button}</a></li>
-    </ul>
-</article>`;
+const articleTemplate = (pic) => {
+    return `${blobBaseUrl + "issues/" + pic + blobSasToken}`;
+};
+
+const thumbnailTemplate = async (page, pic) => {
+    return `<a href="#${page}" data-pic="${pic}" class="btnThumbnail"><img src="${blobBaseUrl + "thumbnails/" + pic + blobSasToken}" style="width: 100px;" /></a>`;
 };
 
 function getParameterByName(name, url = window.location.href) {
@@ -47,7 +48,7 @@ const checkDisplayLanguage = async () => {
         txtIssue.innerHTML = "Sayı";
         nextText = "İLERİ >";
         prevText = "< GERİ";
-        finishText = `Bitti! <a href="/read.html?sayi=${parseInt(issue)-1}">Önceki sayıya devam et</a> veya <a href="/index.html">anasayfaya geri dön</a>.`;
+        finishText = `Bitti! <a href="/read.html?sayi=${parseInt(issue) - 1}">Önceki sayıya devam et</a> veya <a href="/index.html">anasayfaya geri dön</a>.`;
     }
 };
 
@@ -57,28 +58,35 @@ const listFiles = async () => {
         const containerClient = blobServiceClient.getContainerClient("issues");
 
         reportStatus("Retrieving file list...");
-        let iter = containerClient.listBlobsFlat({prefix: issue + "/"});
-        if (page > 1) {
-            for (let i = 0; i < ((page - 1) * 2); i++) {
-                await iter.next();
+        let i = 1;
+        for await (const blob of containerClient.listBlobsFlat({ prefix: issue + "/" })) {
+            if (blob.name.includes("/01.jp") && pageName === "") {
+                pageName = blob.name;
             }
+            issues.innerHTML += await thumbnailTemplate(i++, blob.name);
         }
 
-        let response = await iter.next();
-        let blobItem = response.value;
-        if (blobItem === undefined) {
-            issues.innerHTML += "<article>" + finishText + "</article>";
-            return;
+        var thumnbnailButtons = document.getElementsByClassName("btnThumbnail");
+
+        for (let i = 0; i < thumnbnailButtons.length; i++) {
+            thumnbnailButtons[i].addEventListener("click", function() {
+                imgFocus.src = articleTemplate(this.getAttribute("data-pic"));
+                window.scrollTo(0, 0);
+            })
         }
-        issues.innerHTML += await articleTemplate(issue, prevText, page - 1, blobItem.name);
-        response = await iter.next();
-        blobItem = response.value;
-        issues.innerHTML += await articleTemplate(issue, nextText, page + 1, blobItem.name);
+
+        imgFocus.src = articleTemplate(pageName);
+
+        //actions.innerHTML = `<a href="#${page - 1}">${prevText}</a><a href="#${page + 1}" style="float: right;">${nextText}</a>`
+
+
         reportStatus("Done.");
     } catch (error) {
         reportStatus(error.message);
     }
 };
+
+
 
 document.addEventListener("DOMContentLoaded", function (event) {
     checkDisplayLanguage();
