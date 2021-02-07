@@ -1,17 +1,16 @@
-// index.js
+// read.js
 const { BlobServiceClient } = require("@azure/storage-blob");
 
 const issueNo = document.getElementById("issue");
 const issues = document.getElementById("issues");
 const txtIssue = document.getElementById("txtIssue");
-const issue = getParameterByName("sayi");
-let pageFromQuery = getParameterByName("sayfa");
-if (pageFromQuery === null) pageFromQuery = "1";
-const page = parseInt(pageFromQuery) < 1 ? 1 : parseInt(pageFromQuery);
+const imgFocus = document.getElementById("imgFocus");
+const btnNext = document.getElementById("btnNext");
+const btnPrevious = document.getElementById("btnPrevious");
 
-let nextText = "NEXT >";
-let prevText = "< PREVIOUS";
-let finishText = `Done! <a href="/read.html?sayi=${parseInt(issue)-1}">Continue to read the previous issue</a> or <a href="/index.html">go back to the main page</a>.`;
+const issue = getParameterByName("sayi");
+
+let pages = [], currentPage = 0;
 
 const reportStatus = message => {
     console.log(message);
@@ -20,16 +19,16 @@ const reportStatus = message => {
 const blobBaseUrl = "https://yenicesmestorage.blob.core.windows.net/";
 const blobSasToken = "?sv=2019-12-12&ss=b&srt=sco&sp=rl&se=2021-12-31T18:43:25Z&st=2020-12-31T10:43:25Z&spr=https&sig=xyJVtsCBUzPef2MDVOp9hkzuoLCYjA0VMZqL1Gtngbs%3D";
 
-// Create a new BlobServiceClient
 const blobServiceClient = new BlobServiceClient(blobBaseUrl + blobSasToken);
 
-const articleTemplate = async (issue, button, next, pic) => {
-    return `<article>
-    <a href="?sayi=${issue}&sayfa=${next}" class="image" title="${button}"><img src="${blobBaseUrl + issue + "/" + pic + blobSasToken}" alt="" /></a>
-    <ul class="actions">
-        <li><a href="?sayi=${issue}&sayfa=${next}" class="button">${button}</a></li>
-    </ul>
-</article>`;
+const getSource = (pic) => {
+    return `${blobBaseUrl + "issues/" + pic + blobSasToken}`;
+};
+
+const thumbnailTemplate = async (id, pic) => {
+    return `<a href="#${id}" id="btnThumbnail${id}">
+    <img src="${blobBaseUrl + "thumbnails/" + pic + blobSasToken}" style="width: 100px;" />
+    </a>`;
 };
 
 function getParameterByName(name, url = window.location.href) {
@@ -45,41 +44,61 @@ const checkDisplayLanguage = async () => {
     var language = window.navigator.userLanguage || window.navigator.language;
     if (language === "tr") {
         txtIssue.innerHTML = "Sayı";
-        nextText = "İLERİ >";
-        prevText = "< GERİ";
-        finishText = `Bitti! <a href="/read.html?sayi=${parseInt(issue)-1}">Önceki sayıya devam et</a> veya <a href="/index.html">anasayfaya geri dön</a>.`;
+        btnNext.innerHTML = "İLERİ >";
+        btnPrevious.innerHTML = "< GERİ";
     }
 };
 
 const listFiles = async () => {
     try {
         issueNo.innerHTML = issue;
-        const containerName = issue;
-        const containerClient = blobServiceClient.getContainerClient(containerName);
+        const containerClient = blobServiceClient.getContainerClient("issues");
 
         reportStatus("Retrieving file list...");
-        let iter = containerClient.listBlobsFlat();
-        if (page > 1) {
-            for (let i = 0; i < ((page - 1) * 2); i++) {
-                await iter.next();
-            }
+        let i = 0;
+        for await (const blob of containerClient.listBlobsFlat({ prefix: issue + "/" })) {
+            issues.innerHTML += await thumbnailTemplate(i++, blob.name);
+            pages.push(blob.name);
         }
-
-        let response = await iter.next();
-        let blobItem = response.value;
-        if (blobItem === undefined) {
-            issues.innerHTML += "<article>" + finishText + "</article>";
-            return;
-        }
-        issues.innerHTML += await articleTemplate(containerName, prevText, page - 1, blobItem.name);
-        response = await iter.next();
-        blobItem = response.value;
-        issues.innerHTML += await articleTemplate(containerName, nextText, page + 1, blobItem.name);
-        reportStatus("Done.");
+        changePage();
     } catch (error) {
         reportStatus(error.message);
     }
 };
+
+const changePage = async () => {
+    var hash = window.location.hash.slice(1);
+    if (currentPage === hash) return;
+    currentPage = hash;
+    if (currentPage === "") currentPage = 0;
+    imgFocus.src = getSource(pages[currentPage]);
+    window.scrollTo(0, 0);
+
+    var activeThumnbnailButtons = issues.getElementsByClassName("active");
+
+    for (let i = 0; i < activeThumnbnailButtons.length; i++) {
+        activeThumnbnailButtons[i].classList.remove("active");
+    }
+
+    var thumnbnailButton = document.getElementById("btnThumbnail" + currentPage);
+    thumnbnailButton.classList.add("active");
+    thumnbnailButton.scrollIntoView();
+};
+window.onhashchange = changePage;
+
+btnNext.addEventListener("click", function (e) {
+    e.preventDefault();
+    var page = +currentPage + 1;
+    if (page >= pages.length) page = 0;
+    window.location.hash = page;
+});
+
+btnPrevious.addEventListener("click", function () {
+    e.preventDefault();
+    var page = +currentPage - 1;
+    if (page < 0) page = 0;
+    window.location.hash = page;
+});
 
 document.addEventListener("DOMContentLoaded", function (event) {
     checkDisplayLanguage();

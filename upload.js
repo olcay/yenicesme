@@ -13,32 +13,27 @@ const reportStatus = message => {
 
 const blobSasUrl = "https://yenicesmestorage.blob.core.windows.net/" + window.location.search;
 
-// Create a new BlobServiceClient
 const blobServiceClient = new BlobServiceClient(blobSasUrl);
 
 const uploadFiles = async () => {
     if (!issueNo.value) {
-        reportStatus("Bir sayı numarası giriniz.");
+        reportStatus("Bir sayı giriniz.");
         return;
     }
 
-    var containerName, containerClient;
-    try {
-        containerName = issueNo.value;
-        containerClient = blobServiceClient.getContainerClient(containerName);
-        reportStatus(`Creating folder "${containerName}"...`);
-        await containerClient.create();
-        reportStatus("Folder is created.");
-    } catch (error) {
-        reportStatus(error.message);
-        return;
-    }
+    var issue = issueNo.value;
+    var containerClient = blobServiceClient.getContainerClient("issues");
 
     try {
         reportStatus("Uploading files...");
         const promises = [];
         for (const file of fileInput.files) {
-            const blockBlobClient = containerClient.getBlockBlobClient(file.name);
+            var fileName = file.name;
+            if (fileName.length === 5) {
+                fileName = "0" + fileName;
+            }
+            reportStatus("Uploading file: " + fileName);
+            const blockBlobClient = containerClient.getBlockBlobClient(issue + "/" + fileName);
             promises.push(blockBlobClient.uploadBrowserData(file));
         }
         await Promise.all(promises);
