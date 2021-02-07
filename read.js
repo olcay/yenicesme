@@ -19,7 +19,6 @@ const reportStatus = message => {
 const blobBaseUrl = "https://yenicesmestorage.blob.core.windows.net/";
 const blobSasToken = "?sv=2019-12-12&ss=b&srt=sco&sp=rl&se=2021-12-31T18:43:25Z&st=2020-12-31T10:43:25Z&spr=https&sig=xyJVtsCBUzPef2MDVOp9hkzuoLCYjA0VMZqL1Gtngbs%3D";
 
-// Create a new BlobServiceClient
 const blobServiceClient = new BlobServiceClient(blobBaseUrl + blobSasToken);
 
 const getSource = (pic) => {
@@ -27,7 +26,7 @@ const getSource = (pic) => {
 };
 
 const thumbnailTemplate = async (id, pic) => {
-    return `<a href="#" data-id="${id}" id="btnThumbnail${id}">
+    return `<a href="#${id}" id="btnThumbnail${id}">
     <img src="${blobBaseUrl + "thumbnails/" + pic + blobSasToken}" style="width: 100px;" />
     </a>`;
 };
@@ -61,22 +60,17 @@ const listFiles = async () => {
             issues.innerHTML += await thumbnailTemplate(i++, blob.name);
             pages.push(blob.name);
         }
-        changePage(0);
-
-        var thumnbnailButtons = issues.getElementsByTagName("a");
-
-        for (let i = 0; i < thumnbnailButtons.length; i++) {
-            thumnbnailButtons[i].addEventListener("click", function () {
-                changePage(this.getAttribute("data-id"));
-            })
-        }
+        changePage();
     } catch (error) {
         reportStatus(error.message);
     }
 };
 
-const changePage = async (page) => {
-    currentPage = page;
+const changePage = async () => {
+    var hash = window.location.hash.slice(1);
+    if (currentPage === hash) return;
+    currentPage = hash;
+    if (currentPage === "") currentPage = 0;
     imgFocus.src = getSource(pages[currentPage]);
     window.scrollTo(0, 0);
 
@@ -90,17 +84,20 @@ const changePage = async (page) => {
     thumnbnailButton.classList.add("active");
     thumnbnailButton.scrollIntoView();
 };
+window.onhashchange = changePage;
 
-btnNext.addEventListener("click", function () {
+btnNext.addEventListener("click", function (e) {
+    e.preventDefault();
     var page = +currentPage + 1;
     if (page >= pages.length) page = 0;
-    changePage(page);
+    window.location.hash = page;
 });
 
 btnPrevious.addEventListener("click", function () {
+    e.preventDefault();
     var page = +currentPage - 1;
     if (page < 0) page = 0;
-    changePage(page);
+    window.location.hash = page;
 });
 
 document.addEventListener("DOMContentLoaded", function (event) {
