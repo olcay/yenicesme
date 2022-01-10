@@ -4,7 +4,7 @@ const { BlobServiceClient } = require("@azure/storage-blob");
 const issues = document.getElementById("issues");
 
 const blobBaseUrl = "https://yenicesmestorage.blob.core.windows.net/";
-const blobSasToken = "?sv=2019-12-12&ss=b&srt=sco&sp=rl&se=2021-12-31T18:43:25Z&st=2020-12-31T10:43:25Z&spr=https&sig=xyJVtsCBUzPef2MDVOp9hkzuoLCYjA0VMZqL1Gtngbs%3D";
+const blobSasToken = "?sv=2020-08-04&ss=b&srt=sco&sp=rl&se=2023-03-01T22:03:12Z&st=2022-01-10T14:03:12Z&spr=https&sig=4lCq9eMFtNz8D%2BlTwOfHO8mJf0wlvaOdrTkiPqXJHT0%3D";
 
 const blobServiceClient = new BlobServiceClient(blobBaseUrl + blobSasToken);
 
